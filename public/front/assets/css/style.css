@@ -1,0 +1,596 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-color: #d3cdcd; /* لون الخلفية */
+  color: #333; /* لون النص */
+}
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  background-color: #f5f5f5;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  align-items: center;
+  padding: 10px 20px;
+}
+
+.navbar-logo {
+  display: flex;
+  align-items: center;
+}
+
+.navbar-logo img {
+  height: 50px;
+  margin-right: 8px;
+}
+
+.navbar-logo span {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #284b70;
+}
+
+.navbar-logo .highlight {
+  color: #48cb9e; /* لوه لـ MediMind */
+}
+
+.navbar-toggler {
+  display: none; /* يمكن إظهارها في الشاشات الصغيرة */
+}
+
+.navbar-nav {
+  display: flex;
+  gap: 40px; /* مسافة بين الأزرار */
+}
+
+.navbar-nav .nav-item {
+  list-style: none;
+  font-weight: bold;
+
+}
+
+.navbar-nav .nav-link {
+  text-decoration: none;
+  color: #333;
+  font-size: 1rem;
+  padding: 5px 10px;
+  border-radius: 5px;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.navbar-nav .nav-link:hover {
+  background-color: #a1b8cf;
+}
+/* Wrapper for the entire page */
+.home-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-image: url('../img/home-bg.jpg'); /* ضع هنا رابط الصورة */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    position: relative;
+}
+
+/* Dim overlay over the background */
+.home-wrapper::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* تغطية شبه شفافة */
+    z-index: 1;
+}
+
+
+
+
+
+
+
+
+@media (max-width: 768px) {
+  .navbar-toggler {
+    display: block;
+  }
+
+  .collapse {
+    display: none;
+  }
+
+  .collapse.show {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .navbar-nav {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+/* style main */
+main {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: calc(100vh  ); /* ارتفاع الصفحة */
+    margin: 0;
+    padding: 0;
+    margin-top: 60px;
+  }
+
+  /* مربع المحتوى */
+  .content-box {
+    background-color:#f5f5f5;
+    border: 1px solid #ddd;  /* حدود */
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* ظل */
+    position: relative;
+    z-index: 2; /* ليكون فوق الطبقة الشفافة */
+    padding: 30px;
+    max-width: 800px;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+
+
+  }
+
+  /* صورة داخل مربع المحتوى */
+  .content-box img {
+    max-width: 200px;
+    margin-right: 20px;
+
+  }
+
+  .content-box span {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #284b70;
+  }
+
+  .content-box .highlight {
+    color: #48cb9e; /* لوه لـ MediMind */
+  }
+
+  /* عنوان رئيسي داخل مربع المحتوى */
+  .content-box h1 {
+    font-size: 2rem;
+    margin-bottom: 15px;
+    color: #004d99;
+  }
+
+  /* فقرة نصية داخل مربع المحتوى */
+  .content-box p {
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+.buttons {
+  display: flex;
+  gap: 15px;
+}
+
+.buttons a {
+  text-decoration: none;
+  background-color: #0b72da; /* لون الزر */
+  color: white;
+  /* padding: 10px 20px;
+    border-radius: 5px; */
+  transition: background-color 0.3s;
+}
+
+.buttons a:hover {
+  background-color: #0066cc; /* لون عند التمرير */
+}
+
+/*================================== style of signup===================== */
+.signup-container {
+    background-color:#f5f5f5;
+    box-shadow: 0 4px 8px rgba(18, 2, 243, 0.1);
+    border-radius: 10px;
+    padding: 20px;
+    width: 400px;
+    margin: 50px auto 0 auto;
+    text-align: left;
+}
+
+.signup-container label {
+    display: block;
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #284b70;
+    text-align: left;
+}
+
+.signup-container input[type="text"],
+.signup-container input[type="email"],
+.signup-container input[type="password"] {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.signup-container button {
+    width: 100%;
+    padding: 10px;
+    background-color: #284b70;
+    color: #fff;
+    font-size: 20px;
+    font-weight: bold;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.signup-container button:hover {
+    background-color: #218838;
+}
+
+/*=========================== style list-items================================ */
+
+.main-menu-container {
+    max-width: 1000px;
+    margin: 50px auto;
+    text-align: center;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.main-menu-container h1 {
+    font-size: 24px;
+    color: #284b70;
+    font-weight: bold;
+    margin-bottom: 30px;
+}
+
+.main-menu-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+}
+
+.main-menu-buttons a {
+    display: inline-block;
+    padding: 15px 30px;
+    background-color: #284b70;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+}
+
+.main-menu-buttons a:hover {
+    background-color: #0056b3;
+}
+
+
+  /*==========================style medication-schedule================================= */
+
+.form-medication-schedule {
+    max-width: 900px;
+    margin: 30px auto;
+    padding: 20px;
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.form-medication-schedule h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 24px;
+    color: #284b70;
+}
+
+.form-medication-schedule label {
+    font-weight: bold;
+    color: #284b70;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.form-medication-schedule input,
+.form-medication-schedule select,
+.form-medication-schedule textarea {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.form-medication-schedule button {
+    display: block;
+    width: 100%;
+    background-color: #007bff;
+    color: #fff;
+    padding: 10px;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.form-medication-schedule button:hover {
+    background-color: #0056b3;
+}
+
+  /*==========================style activity-schedule================================= */
+
+
+/* Container Style */
+.activity-form-container {
+    max-width: 500px;
+    width: 100%;
+    background-color: #f5f5f5 !important; /* خلفية خفيفة */
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Title Style */
+.activity-form-title {
+    font-size: 24px;
+    font-weight: bold;
+    color: #284b70; /* لون الخط */
+}
+
+/* Form Group Style */
+.activity-form-group {
+    margin-bottom: 20px;
+}
+
+/* Label Style */
+.activity-form-label {
+    display: block;
+    font-size: 16px;
+    font-weight: bold;
+    color: #284b70; /* لون النص */
+    margin-bottom: 8px;
+}
+
+/* Select & Input Style */
+.activity-form-select,
+.activity-form-input {
+    width: 100%;
+    padding: 10px;
+    font-size: 14px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+    transition: border-color 0.3s ease;
+}
+
+.activity-form-select:focus,
+.activity-form-input:focus {
+    border-color: #284b70; /* لون التحديد */
+    outline: none;
+}
+
+/* Button Style */
+.activity-form-button {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    font-weight: bold;
+    color: #fff; /* لون النص */
+    background-color: #284b70; /* لون الخلفية */
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.activity-form-button:hover {
+    background-color: #0056b3; /* لون عند التمرير */
+}
+
+  /*==========================style report ================================= */
+
+/* Wrapper for centering the form */
+.report-form-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #f7f9fa;
+}
+
+/* Container of the form */
+.report-form-container {
+    max-width: 500px;
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Title of the form */
+.report-form-title {
+    font-size: 24px;
+    color: #284b70;
+    font-weight: bold;
+}
+
+/* Form group for input and button alignment */
+.report-form-group {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Space between input and button */
+}
+
+/* Input field */
+.report-form-input {
+    flex: 1; /* Make the input field take the remaining width */
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #284b70;
+}
+
+/* Button */
+.report-form-button {
+    background-color: #284b70;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.report-form-button:hover {
+    background-color: #0056b3;
+}
+/*==========================style add-elderly ================================= */
+
+/* Wrapper for centering the form */
+.add-elderly-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #f7f9fa;
+}
+
+/* Container of the form */
+.add-elderly-container {
+    max-width: 500px;
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Title of the form */
+.add-elderly-title {
+    font-size: 24px;
+    color: #284b70;
+    font-weight: bold;
+}
+
+/* Label styling */
+.add-elderly-label {
+    font-size: 14px;
+    color: #284b70;
+    font-weight: bold;
+    display: block;
+    margin-bottom: 5px;
+}
+
+/* Input fields */
+.add-elderly-input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #284b70;
+    margin-bottom: 10px;
+}
+
+/* Button */
+.add-elderly-button {
+    background-color: #284b70;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+}
+
+.add-elderly-button:hover {
+    background-color: #0056b3;
+}
+/*==========================style closet-status ================================= */
+/* Wrapper for centering the form */
+.closet-status-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #f7f9fa;
+}
+
+/* Container of the form */
+.closet-status-container {
+    max-width: 400px;
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Title of the form */
+.closet-status-title {
+    font-size: 24px;
+    color: #284b70;
+    font-weight: bold;
+}
+
+/* Label styling */
+.closet-status-label {
+    font-size: 14px;
+    color: #284b70;
+    font-weight: bold;
+    display: block;
+    margin-bottom: 5px;
+}
+
+/* Input field (dropdown) */
+.closet-status-input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #284b70;
+    margin-bottom: 10px;
+    background-color: #fff;
+    appearance: none;
+}
+
+/* Button */
+.closet-status-button {
+    background-color: #284b70;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+}
+
+.closet-status-button:hover {
+    background-color: #0056b3;
+}

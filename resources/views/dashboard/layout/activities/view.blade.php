@@ -12,6 +12,7 @@
             </tr>
         </thead>
         <tbody>
+            
             @foreach($activities as $activity)
                 <tr>
                     <td>{{ $activity->patient->name }}</td>

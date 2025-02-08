@@ -3,7 +3,10 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Medication;
 use App\Models\Patient;
+use App\Services\MqttService;
+use Illuminate\Support\Facades\Log;
 class MedicationController extends Controller
+
 {
     public function create()
     {
@@ -34,4 +37,38 @@ class MedicationController extends Controller
         $medications = Medication::with('patient')->get(); //  جلب الأدوية مع بيانات المرضى المرتبطين بها
         return view('dashboard.layout.medications.view', compact('medications'));
     }
+
+
+  /**
+     * إرسال تذكير بالدواء إلى الروبوت عبر MQTT عند حلول موعد الجرعة.
+     */
+    public function sendMedicationReminder($id)
+    {
+        $medication = Medication::findOrFail($id);
+        $mqttService = new MqttService();
+
+        $message = json_encode([
+            "medicine" => $medication->name,
+            "patient" => $medication->patient->name,
+            "message" => "حان وقت تناول الدواء: " . $medication->name . " للمريض " . $medication->patient->name
+        ]);
+        Log::info("🚀 Sending Medication Reminder: " . $message);
+
+        $mqttService->sendMessage("nao/reminder", $message);
+
+        return response()->json(["message" => "Medication reminder sent to NAO"]);
+    }
+
+    /**
+     * التحقق من مواعيد الأدوية وإرسال إشعار عند حلول موعدها.
+     */
+    public function checkAndSendMedicationReminders()
+    {
+        $medications = Medication::whereTime('time_of_intake', '<=', now())->get();
+
+        foreach ($medications as $medication) {
+            $this->sendMedicationReminder($medication->id);
+        }
+    }
+
 }

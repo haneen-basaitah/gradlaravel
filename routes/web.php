@@ -41,6 +41,8 @@ Route::prefix('dashboard-panel/medications')->middleware('auth')->group(function
     Route::get('add', [MedicationController::class, 'create'])->name('medications.add');
     Route::post('add', [MedicationController::class, 'store'])->name('medications.store'); // يجب أن يكون `POST`
     Route::get('view', [MedicationController::class, 'index'])->name('medications.view');
+    Route::get('/send-reminder/{id}', [MedicationController::class, 'sendMedicationReminder'])->name('medications.reminder');
+
 });
 
 // Activities Management Routes

@@ -73,8 +73,8 @@
                                 <!-- Expiration Date -->
                                 <div class="col-md-6 mt-3">
                                     <label for="expiration_date"><strong>Expiration Date</strong></label>
-                                    <input type="date" name="expiration_date" id="expiration_date" class="form-control"
-                                        required>
+                                    <input type="date" name="expiration_date" id="expiration_date" class="form-control" required>
+
                                     @error('expiration_date')
                                         <div class="text-danger">{{ $message }}</div>
                                     @enderror
@@ -83,8 +83,8 @@
                                 <!-- Time of Intake (12-hour format) -->
                                 <div class="col-md-6 mt-3">
                                     <label for="time_of_intake"><strong>Time of Intake</strong></label>
-                                    <input type="time" name="time_of_intake" id="time_of_intake" class="form-control"
-                                        step="3600" required>
+                                    <input type="time" name="time_of_intake" id="time_of_intake" class="form-control" step="60" required>
+
                                     @error('time_of_intake')
                                         <div class="text-danger">{{ $message }}</div>
                                     @enderror

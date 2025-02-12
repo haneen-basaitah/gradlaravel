@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('name'); // اسم الدواء
             $table->string('dosage'); // الجرعة
             $table->string('frequency'); // عدد الجرعات
-            $table->string('time_of_intake'); // وقت الاستخدام
+            $table->time('time_of_intake'); // وقت الاستخدام
             $table->string('medicine_closet_number'); // رقم الخزانة
             $table->string('medicine_closet_location'); // موقع الدواء في الخزانة
             $table->date('expiration_date'); // تاريخ الانتهاء
@@ -31,6 +31,15 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::table('medications', function (Blueprint $table) {
+            if (Schema::hasColumn('medications', 'closet_id')) {
+                $table->dropForeign(['closet_id']);
+                $table->dropColumn('time_of_intake'); // حذف العمود ✅ تم إصلاحه
+
+            }
+        });
+
+
         Schema::dropIfExists('medications');
     }
 };

@@ -15,6 +15,8 @@ class Medication extends Model
         'medicine_closet_number',
         'medicine_closet_location',
         'expiration_date',
+        'pill_count',  // ✅ إضافة عدد الحبات
+        'status',      // ✅ إضافة حالة الدواء
 
     ];
     protected $primaryKey = 'id';

@@ -1,6 +1,8 @@
 <?php
 
 namespace App\Providers;
+use PhpMqtt\Client\MqttClient;
+use PhpMqtt\Client\ConnectionSettings;
 
 
 use Illuminate\Support\ServiceProvider;

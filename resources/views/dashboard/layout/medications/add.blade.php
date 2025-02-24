@@ -24,15 +24,15 @@
                                     @enderror
                                 </div>
 
-                                <!-- Medicine Closet Number (Drawer Number) -->
+                                <!-- Medicine Closet cell (Drawer Number) -->
                                 <div class="col-md-6">
-                                    <label for="medicine_closet_number"><strong>Medicine Closet Drawer</strong></label>
+                                    <label for="medicine_closet_number"><strong>Medicine Closet cell</strong></label>
                                     <select name="medicine_closet_number" id="medicine_closet_number" class="form-control"
                                         required>
                                         <option value="">Select Drawer Number</option>
-                                        <option value="1">Drawer 1</option>
-                                        <option value="2">Drawer 2</option>
-                                        <option value="3">Drawer 3</option>
+                                        <option value=1>1</option>
+                                        <option value=1>2</option>
+                                        <option value=1>3</option>
                                     </select>
                                     @error('medicine_closet_number')
                                         <div class="text-danger">{{ $message }}</div>
@@ -49,16 +49,16 @@
                                     @enderror
                                 </div>
 
-                                <!-- Location in Closet -->
+                                <!--  Closet number -->
                                 <div class="col-md-6 mt-3">
-                                    <label for="medicine_closet_location"><strong>Location in the Medicine
-                                            Closet</strong></label>
-                                    <input type="text" name="medicine_closet_location" id="medicine_closet_location"
-                                        class="form-control" placeholder="Select the drawer number" required>
+                                    <label for="medicine_closet_location"><strong>Medicine Closet Number</strong></label>
+                                    <input type="number" name="medicine_closet_location" id="medicine_closet_location"
+                                           class="form-control" placeholder="Enter closet location number" min="1" required>
                                     @error('medicine_closet_location')
-                                        <div class="text-danger">{{ $message }}</div>
+                                    <div class="text-danger">{{ $message }}</div>
                                     @enderror
                                 </div>
+
 
                                 <!-- Dosage -->
                                 <div class="col-md-6 mt-3">
@@ -73,7 +73,8 @@
                                 <!-- Expiration Date -->
                                 <div class="col-md-6 mt-3">
                                     <label for="expiration_date"><strong>Expiration Date</strong></label>
-                                    <input type="date" name="expiration_date" id="expiration_date" class="form-control" required>
+                                    <input type="date" name="expiration_date" id="expiration_date" class="form-control"
+                                        required>
 
                                     @error('expiration_date')
                                         <div class="text-danger">{{ $message }}</div>
@@ -83,7 +84,8 @@
                                 <!-- Time of Intake (12-hour format) -->
                                 <div class="col-md-6 mt-3">
                                     <label for="time_of_intake"><strong>Time of Intake</strong></label>
-                                    <input type="time" name="time_of_intake" id="time_of_intake" class="form-control" step="60" required>
+                                    <input type="time" name="time_of_intake" id="time_of_intake" class="form-control"
+                                        step="60" required>
 
                                     @error('time_of_intake')
                                         <div class="text-danger">{{ $message }}</div>
@@ -104,6 +106,16 @@
                                         <div class="text-danger">{{ $message }}</div>
                                     @enderror
                                 </div>
+                                <!-- Pill Count -->
+                                <div class="col-md-6 mt-3">
+                                    <label for="pill_count"><strong>Number of Pills</strong></label>
+                                    <input type="number" name="pill_count" id="pill_count" class="form-control"
+                                        placeholder="Enter the number of pills" required min="1">
+                                    @error('pill_count')
+                                        <div class="text-danger">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
                             </div>
 
                             <!-- Submit Button -->

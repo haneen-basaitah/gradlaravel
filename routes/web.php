@@ -42,8 +42,7 @@ Route::prefix('dashboard-panel/medications')->middleware('auth')->group(function
     Route::get('add', [MedicationController::class, 'create'])->name('medications.add');
     Route::post('add', [MedicationController::class, 'store'])->name('medications.store'); // يجب أن يكون `POST`
     Route::get('view', [MedicationController::class, 'index'])->name('medications.view');
-  //  Route::get('send-time/{id}', [MedicationController::class, 'sendTimeToDevices'])->name('medications.sendTimeToDevices');
-  Route::get('send-reminders', [MedicationController::class, 'checkAndSendMedicationReminders'])->name('medications.sendReminders');
+    Route::get('send-reminders', [MedicationController::class, 'runMedicationSystem'])->name('medications.sendReminders');
 
 });
 

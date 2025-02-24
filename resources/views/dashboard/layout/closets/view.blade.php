@@ -31,16 +31,4 @@
         </div>
     @endif
 </div>
-
-<script>
-    // تحديث البيانات بدون إعادة تحميل الصفحة
-    setInterval(function() {
-        fetch("{{ route('closets.subscribe') }}")
-            .then(response => response.text())
-            .then(html => {
-                document.getElementById("closet-data").innerHTML = new DOMParser().parseFromString(html, 'text/html').querySelector("#closet-data").innerHTML;
-            });
-    }, 5000); // تحديث البيانات كل 5 ثوانٍ
-</script>
-
 @endsection

@@ -22,6 +22,9 @@
                 <th>Closet Number</th>
                 <th>Location</th>
                 <th>Expiration Date</th>
+                <th>pill_count</th>
+
+
             </tr>
         </thead>
         <tbody>
@@ -36,6 +39,7 @@
                     <td>{{ $medication->medicine_closet_number }}</td>
                     <td>{{ $medication->medicine_closet_location }}</td>
                     <td>{{ $medication->expiration_date }}</td>
+                    <td>{{ $medication->pill_count }}</td>
                 </tr>
             @endforeach
         </tbody>

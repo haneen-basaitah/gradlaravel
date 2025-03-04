@@ -8,9 +8,13 @@ use App\Models\Patient;
 use App\Services\MqttService;
 use Illuminate\Support\Facades\Log;
 use PhpMqtt\Client\MqttClient;
+
+use Illuminate\Support\Facades\Cache;
+
 use Illuminate\Support\Facades\Mail;
 
 use App\Services\MqttClientService;
+
 
 
 class MedicationController extends Controller
@@ -54,54 +58,82 @@ class MedicationController extends Controller
 
 
     //    ====================public function sendTimeToDevices($id)=====================================
+/**
+ * ✅ **دالة لفحص وجود مواعيد أدوية جديدة**
+ */
+public function hasUpcomingMedications()
+{
+    $currentTime = now();
+    return \App\Models\Medication::where('time_of_intake', '>=', $currentTime->format('H:i'))->exists();
+}
 
-        public function runMedicationSystem()
-    {
-        $currentTime = now()->format('H:i:00');
+public function runMedicationSystem()
+{
+    while (true) { // ✅ حلقة مستمرة حتى انتهاء جميع الجرعات
+        $currentTime = now()->format('H:i');
         Log::info("🕒 الوقت الحالي في Laravel: " . $currentTime);
 
-        $medications = Medication::whereRaw("TIME_FORMAT(time_of_intake, '%H:%i:00') = ?", [$currentTime])->get();
+        $medications = Medication::whereRaw("TIME_FORMAT(time_of_intake, '%H:%i') = ?", [$currentTime])->get();
 
         if ($medications->isEmpty()) {
-            Log::info("⏳ لا يوجد أدوية يجب إرسالها الآن.");
-            return;
+            Log::info("⏳ لا يوجد أدوية يجب إرسالها الآن، سيتم البحث عن الجرعة القادمة...");
+
+            // ✅ البحث عن الجرعة التالية
+            $nextMedication = Medication::where('time_of_intake', '>', now()->format('H:i'))
+                ->orderBy('time_of_intake', 'asc')
+                ->first();
+
+            if ($nextMedication) {
+                $waitTime = strtotime($nextMedication->time_of_intake) - strtotime(now()->format('H:i'));
+                Log::info("⏭️ سيتم انتظار $waitTime ثانية حتى موعد الجرعة التالية: {$nextMedication->name} في {$nextMedication->time_of_intake}");
+
+                sleep($waitTime); // ⏳ الانتظار حتى يحين موعد الجرعة التالية
+                continue; // 🔄 إعادة تشغيل `runMedicationSystem()` تلقائيًا عند انتهاء الانتظار
+            } else {
+                Log::info("✅ لا يوجد جرعات قادمة، سيتم إنهاء `runMedicationSystem()` مؤقتًا.");
+                return;
+            }
         }
 
         $mqtt = new MqttClientService();
         $mqtt->connect();
 
-        // إرسال رسائل إلى ESP32
-            foreach ($medications as $medication) {
-                $closetNumber = $medication->medicine_closet_location;
-                $cellNumber = $medication->medicine_closet_number;
+        foreach ($medications as $medication) {
+            $closetNumber = $medication->medicine_closet_location;
+            $cellNumber = $medication->medicine_closet_number;
+            $cacheKey = "sent_medication_{$closetNumber}_{$cellNumber}_{$currentTime}";
 
-                // 🛠️  نشر جميع البيانات في نفس التوبيك
-                $message = json_encode([
+            if (Cache::has($cacheKey)) {
+                Log::info("⏭️ تم تخطي إرسال الدواء ($closetNumber, $cellNumber) لأنه تم إرساله مسبقًا خلال هذه الدقيقة.");
+                continue;
+            }
 
-                    "closet_number" => $closetNumber,
-                    "cell_number" => $cellNumber,
-                ]);
+            // ✅ إرسال الجرعة عبر MQTT
+            $mqtt->publish("medication/reminder", json_encode([
+                "closet_number" => $closetNumber,
+                "cell_number" => $cellNumber,
+            ]));
 
-                $mqtt->publish("medication/reminder", $message,0);
-                Log::info("🚀 تم إرسال رقم الخزانة: $closetNumber و رقم الخلية: $cellNumber إلى التوبيك: medication/reminder");
+            Log::info("🚀 تم إرسال رقم الخزانة: $closetNumber و رقم الخلية: $cellNumber إلى التوبيك: medication/reminder");
 
-                /// ✅ 🤖 إرسال تذكير إلى الروبوت NAO
-                $naoMessage = json_encode([
-                    "message" => "🔔 حان وقت تناول الدواء!"
-                ]);
+            Cache::put($cacheKey, true, now()->addMinute());
+        }
 
-                $mqtt->publish("nao/reminder", $naoMessage);
-                Log::info("🤖 أُرسلت رسالة التذكير إلى NAO: 🔔 حان وقت تناول الدواء!");
-
-             }
-        
-
-
-
-  // ✅ بعد نشر البيانات، استدعاء `subscribeToMissedDoses()`
-  Log::info("📡 استدعاء `subscribeToMissedDoses()` بعد نشر التذكيرات...");
-  app(\App\Http\Controllers\MedicationSubscriptionController::class)->subscribeToMissedDoses();
+        // ✅ الاشتراك في `missed` عند الحاجة
+        if ($this->hasUpcomingMedications()) {
+            Log::info("📡 هناك جرعات قادمة، سيتم الاشتراك في `medication/missed`...");
+            app(\App\Http\Controllers\MedicationSubscriptionController::class)->subscribeToMissedDoses();
+        } else {
+            Log::info("✅ لا يوجد جرعات جديدة تحتاج للاشتراك في `missed` الآن.");
+            return; // ⛔ إنهاء `runMedicationSystem()` إذا لم يكن هناك جرعات جديدة
+        }
     }
+}
+
+
+
+
+
 
 
 

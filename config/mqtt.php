@@ -5,7 +5,7 @@ return [
 
     'connections' => [
         'local' => [
-            'host' => env('MQTT_HOST', '192.168.0.116'),  // عنوان MQTT Broker
+            'host' => env('MQTT_HOST', '10.212.63.66'),  // عنوان MQTT Broker
             'port' => env('MQTT_PORT', 1883),               // المنفذ الافتراضي لـ MQTT
             'client_id' => 'laravel_mqtt_client_' . uniqid(),
             'username' => env('MQTT_USERNAME', null),

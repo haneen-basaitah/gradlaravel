@@ -23,7 +23,6 @@ class MedicationReminder extends Command
      */
     public function handle()
     {
-        dd('تم تنفيذ الأمر بنجاح');
         Log::info(" تشغيل `MedicationReminder` عبر Artisan Command");
 
         // استدعاء الوظيفة من `MedicationController`

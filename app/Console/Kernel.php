@@ -7,21 +7,48 @@ use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 use Illuminate\Support\Facades\Log;
 use App\Models\Medication;
 use Illuminate\Support\Facades\Mail;
-
-
-
+use App\Jobs\MedicationSystemJob; // استيراد Job في الأعلى
 class Kernel extends ConsoleKernel
 {
-    protected $commands = [
-        \App\Console\Commands\MedicationReminder::class,
-    ];
+
+
 
     protected function schedule(Schedule $schedule)
     {
-        $schedule->command('medication:reminder')
-                 ->everySecond(); // تشغيل كل دقيقة
-
+        $schedule->job(new MedicationSystemJob)
+                 ->everyMinute()
+                 ->name('medication_system')
+                 ->withoutOverlapping(); // ✅ يمنع تكرار التنفيذ إذا كانت الوظيفة السابقة لم تكتمل
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // protected $commands = [
+    //     \App\Console\Commands\MedicationReminder::class,
+    // ];
+
+    // protected function schedule(Schedule $schedule)
+    // {
+    //     $schedule->command('medication:reminder')
+    //              ->everySecond(); // تشغيل كل دقيقة
+
+    // }
 
 
 

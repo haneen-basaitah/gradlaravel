@@ -18,7 +18,8 @@ class MedicationSystemJob implements ShouldQueue
     {
         //
     }
-
+    public $tries = 5; // عدد المحاولات القصوى
+    public $timeout = 120; // تعيين مهلة الوظيفة
     public function handle()
     {
         Log::info("تشغيل `MedicationSystemJob` من خلال الـ Queue Job");

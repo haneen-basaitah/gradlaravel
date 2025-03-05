@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\RefillReminderMail;
 use App\Services\MqttClientService;
 use App\Jobs\MedicationSystemJob;
+use Illuminate\Support\Facades\Cache;
+
+
 
 class MedicationSubscriptionController extends Controller
 {
@@ -17,45 +20,68 @@ class MedicationSubscriptionController extends Controller
     {
         $mqtt = new MqttClientService();
         $mqtt->connect();
-
+    
         if ($mqtt->isConnected()) {
-            Log::info("📡 الاشتراك في `medication/missed`");
-
-            $mqtt->subscribe("medication/missed", function ($receivedTopic, $message) {
+            Log::info("📡 الاشتراك في `medication/missed` بدأ...");
+    
+            $messageReceived = false; // متغير للتحقق من استقبال الرد
+    
+            $mqtt->subscribe("medication/missed", function ($receivedTopic, $message) use ($mqtt, &$messageReceived) {
                 Log::info("📩 رسالة مستقبلة من MQTT: $message");
                 $data = json_decode($message, true);
-
+    
                 if (isset($data["status"], $data["closet_id"], $data["cell_id"])) {
                     $status = $data["status"];
                     $closetId = $data["closet_id"];
                     $cellId = $data["cell_id"];
-
-                    Log::info("✅ حالة الجرعة المستلمة: $status | 🏠 رقم الخزانة: $closetId | 📦 رقم الخلية: $cellId");
-
-                    // ✅ تحديث حالة الدواء في قاعدة البيانات
+    
+                    Log::info("✅ تم استقبال حالة الجرعة: $status | 🏠 رقم الخزانة: $closetId | 📦 رقم الخلية: $cellId");
+    
+                    // ✅ تحديث قاعدة البيانات
                     $this->updateMedicationCount($closetId, $cellId, $status);
-
-                    // ✅ البحث عن الجرعة التالية وجدولتها في وقتها
-                    Log::info("🔄 سيتم البحث عن الجرعة التالية وتشغيل `runMedicationSystem()` عند موعدها.");
-                    app(\App\Http\Controllers\MedicationController::class)->runMedicationSystem();
+    
+                    // ✅ تسجيل أنه تم استقبال رسالة
+                    $messageReceived = true;
                 }
             });
-            $mqtt->loop(30);
+    
+            Log::info("🔄 بدء `loop()` للاستماع للرسائل...");
+    
+            // ✅ استمرار الاستماع حتى استقبال رسالة جديدة
+            while (!$messageReceived) {
+                $mqtt->loop(1); // ✅ الاستماع بتحديثات قصيرة
+            }
+    
+            // ✅ عند استقبال رسالة، يتم إنهاء الاشتراك
+            Log::info("✅ تم استقبال رد، سيتم إيقاف `loop()`.");
+            $mqtt->stopListening();
+        } else {
+            Log::error("🔴 فشل الاتصال بـ MQTT، سيتم إعادة المحاولة بعد 5 ثوانٍ...");
+            sleep(5);
+            $this->subscribeToMissedDoses();
         }
     }
+    
+    
+
+
+
+
+
+
 
     private function updateMedicationCount($closetId, $cellId, $status)
     {
-        // 🔍 البحث عن جميع الأدوية بنفس closet_number و medicine_closet_location ونفس المريض
+        // 🔍 البحث عن جميع الأدوية بنفس `closet_number` و `medicine_closet_location`
         $medications = Medication::where('medicine_closet_location', $closetId)
                                 ->where('medicine_closet_number', $cellId)
                                 ->get();
 
         if ($medications->isNotEmpty()) {
-            // ✅ جلب المريض المرتبط بالدواء
+            // ✅ جلب `patient_id` من أول دواء مرتبط
             $patientId = $medications->first()->patient_id;
 
-            // 🔍 البحث عن جميع الجرعات التي تخص نفس المريض ونفس الدواء والخزانة والجرار
+            // 🔍 البحث عن جميع الجرعات المتعلقة بنفس المريض والخزانة والخلية
             $relatedMedications = Medication::where('patient_id', $patientId)
                                             ->where('medicine_closet_location', $closetId)
                                             ->where('medicine_closet_number', $cellId)
@@ -66,7 +92,7 @@ class MedicationSubscriptionController extends Controller
                     if ($medication->pill_count > 0) {
                         $medication->pill_count -= 1;
                     } else {
-                        Log::warning("⚠️ لا يمكن تقليل عدد الحبوب لأن العدد بالفعل صفر!");
+                        Log::warning("⚠️ لا يمكن تقليل عدد الحبوب لأن العدد بالفعل صفر! [خزانة: $closetId | خلية: $cellId | دواء: {$medication->name}]");
                     }
                 }
 
@@ -76,20 +102,29 @@ class MedicationSubscriptionController extends Controller
                 // ✅ تأكيد الحفظ في قاعدة البيانات
                 if ($medication->save()) {
                     Log::info("✅ تم تحديث الدواء: pill_count = " . $medication->pill_count . ", status = $status");
+
+                    // ✅ بعد تحديث الجرعة، تحقق من وجود جرعات قادمة
+                    if (app(\App\Http\Controllers\MedicationController::class)->hasUpcomingMedications()) {
+                        Log::info("📅 يوجد جرعات قادمة، سيتم تشغيل runMedicationSystem()...");
+                        app(\App\Http\Controllers\MedicationController::class)->runMedicationSystem();
+                    } else {
+                        Log::info("✅ لا يوجد جرعات جديدة، سيتم إنهاء الاستماع.");
+                    }
                 } else {
-                    Log::error("❌ فشل في حفظ التعديل في قاعدة البيانات!");
+                    Log::error("❌ فشل في حفظ تحديث الدواء في قاعدة البيانات! [خزانة: $closetId | خلية: $cellId | دواء: {$medication->name}]");
                 }
             }
 
-            // 📨 إرسال إشعار عندما يصبح العدد 3 لأي من الأدوية المرتبطة
+            // 📨 إرسال إشعار عندما يصبح عدد الحبوب **لأي جرعة** في الجرعات المرتبطة يساوي 3
             if ($relatedMedications->first()->pill_count == 3) {
                 $this->sendRefillReminder($relatedMedications->first());
             }
 
         } else {
-            Log::error("🔴 لم يتم العثور على أي دواء في قاعدة البيانات للخزانة:  الجرار: $cellId.");
+            Log::error("🔴 لم يتم العثور على أي دواء في قاعدة البيانات للخزانة: $closetId والخلية: $cellId.");
         }
     }
+
 
     private function sendRefillReminder($medication)
     {

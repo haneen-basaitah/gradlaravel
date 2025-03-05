@@ -103,7 +103,7 @@ class MqttClientService
     }
 
     // ✅ الاشتراك في موضوع MQTT
-    public function subscribe($topic, callable $callback, $timeout = 30)
+    public function subscribe($topic, callable $callback)
     {
         if (!$this->isConnected()) {
             Log::warning("⚠️ إعادة محاولة الاتصال بـ MQTT...");
@@ -114,42 +114,26 @@ class MqttClientService
             try {
                 Log::info("📡 الاشتراك في التوبيك: $topic");
 
-                $startTime = time();
-                $messageReceived = false;
-
-                $this->mqtt->subscribe($topic, function ($receivedTopic, $message) use ($callback, &$startTime, &$messageReceived) {
-                    Log::info("📩 رسالة مستقبلة من MQTT: $receivedTopic - $message");
+                // ✅ الاشتراك في التوبيك وتمرير البيانات إلى الـ callback
+                $this->mqtt->subscribe($topic, function ($receivedTopic, $message) use ($callback) {
+                    Log::info("📩 رسالة مستقبلة من MQTT ($receivedTopic): $message");
                     $callback($receivedTopic, $message);
-                    $messageReceived = true;
-                    $startTime = time(); // إعادة تعيين الوقت عند استقبال رسالة
-                }, 0);
+                });
 
                 Log::info("🔄 بدء `loop()` للاستماع للرسائل...");
-                while ($this->isConnected() && $this->isListening()) {
-                    $this->loop(10); // تشغيل الـ Loop مع مهلة قصوى
 
-                    // ✅ شرط الخروج: إذا انتهت المهلة دون استقبال أي رسالة
-                    if (time() - $startTime >= $timeout) {
-                        Log::info("⏳ انتهت المهلة للاشتراك في `$topic`.");
-                        break;
-                    }
-                }
-
-                // ✅ استدعاء `runMedicationSystem()` فقط إذا كان هناك دواء جديد قادم
-                if (!$messageReceived && app(\App\Http\Controllers\MedicationController::class)->hasUpcomingMedications()) {
-                    Log::info("📅 يوجد دواء جديد قريب، سيتم استدعاء `runMedicationSystem()`...");
-                    app(\App\Http\Controllers\MedicationController::class)->runMedicationSystem();
-                } else {
-                    Log::info("✅ لا يوجد دواء جديد حالياً، سيتم انتظار الموعد القادم...");
+                while (true) { // ✅ الاستماع المستمر
+                    $this->mqtt->loop();
                 }
 
             } catch (\Exception $e) {
-                Log::error("❌ خطأ أثناء الاشتراك: " . $e->getMessage());
+                Log::error("❌ خطأ أثناء الاشتراك في `$topic`: " . $e->getMessage());
             }
         } else {
             Log::error("🔴 فشل الاشتراك - MQTT لا يزال غير متصل!");
         }
     }
+
 
     // ✅ تشغيل `loop` للاستماع للرسائل
     public function loop($timeout = 10)

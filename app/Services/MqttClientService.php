@@ -15,7 +15,7 @@ class MqttClientService
 
     public function __construct()
     {
-        $server = env('MQTT_HOST', '10.212.63.66'); // يمكنك تغييره لاحقًا
+        $server = env('MQTT_HOST', '192.168.0.108'); // يمكنك تغييره لاحقًا
         $port = env('MQTT_PORT', 1883);
         $clientId = env('MQTT_CLIENT_ID', 'laravel_mqtt_scheduler');
 

@@ -121,6 +121,9 @@ public function runMedicationSystem()
 
         Log::info("🚀 تم إرسال رقم الخزانة: $closetNumber و رقم الخلية: $cellNumber إلى التوبيك: medication/reminder");
 
+        $mqtt->publish("nao/reminder", 0);
+        Log::info("🤖 أُرسلت رسالة التذكير إلى NAO: 🔔 حان وقت تناول الدواء!");
+        
         Cache::put($cacheKey, true, now()->addMinute());
 
         $newMedicationSent = true; // ✅ تأكيد أنه تم إرسال جرعة جديدة

@@ -7,7 +7,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 
-class RefillReminderMail extends Mailable
+class MissedDoseMail extends Mailable
 {
     use Queueable, SerializesModels;
 
@@ -17,17 +17,18 @@ class RefillReminderMail extends Mailable
     public function __construct($medication)
     {
         $this->medication = $medication;
+
     }
 
     public function build()
     {
-        return $this->subject('🔔 تنبيه: إعادة تعبئة الدواء')
-                    ->view('emails.refill_reminder')
+        return $this->subject("🚨 تنبيه: جرعة دواء فائتة!")
+                    ->view('emails.missed_dose')
                     ->with([
                         'medicationName' => $this->medication->name,
-                        'closetNumber' => $this->medication->medicine_closet_location,
-                        'cellNumber' => $this->medication->medicine_closet_number,
-                        'pillCount' => $this->medication->pill_count,
+                        'time' => $this->medication->time_of_intake,
+                        'closet' => $this->medication->medicine_closet_location,
+                        'cell' => $this->medication->medicine_closet_number,
                     ]);
     }
 }

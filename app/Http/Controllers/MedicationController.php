@@ -5,9 +5,14 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Medication;
 use App\Models\Patient;
+use Carbon\Carbon;
+
 use App\Services\MqttService;
 use Illuminate\Support\Facades\Log;
 use PhpMqtt\Client\MqttClient;
+use App\Mail\MissedDoseMail;
+use App\Mail\RefillReminderMail;
+
 
 use Illuminate\Support\Facades\Cache;
 
@@ -55,6 +60,30 @@ class MedicationController extends Controller
         $medications = Medication::with('patient')->get(); //  جلب الأدوية مع بيانات المرضى المرتبطين بها
         return view('dashboard.layout.medications.view', compact('medications'));
     }
+    public function updatePillCount(Request $request, $id)
+    {
+        $request->validate([
+            'pill_count' => 'required|integer|min:0', // يجب أن يكون رقمًا موجبًا أو صفرًا
+        ]);
+
+        // 🔍 البحث عن الدواء المحدد
+        $medication = Medication::findOrFail($id);
+        $newPillCount = $request->pill_count;
+
+        // 🔍 جلب جميع الأدوية الخاصة بنفس المريض ونفس الجرّار
+        $relatedMedications = Medication::where('patient_id', $medication->patient_id)
+                                        ->where('medicine_closet_location', $medication->medicine_closet_location)
+                                        ->where('medicine_closet_number', $medication->medicine_closet_number)
+                                        ->get();
+
+        // 🔄 تحديث كل الجرعات الخاصة بنفس الجرّار ونفس المريض
+        foreach ($relatedMedications as $med) {
+            $med->pill_count = $newPillCount;
+            $med->save();
+        }
+
+        return redirect()->back()->with('success', 'Pill count updated successfully for all related medications in the same closet!');
+    }
 
 
     //    ====================public function sendTimeToDevices($id)=====================================
@@ -73,7 +102,8 @@ public function runMedicationSystem()
     Log::info("🕒 الوقت الحالي في Laravel (بدون ثواني): " . $currentTime);
 
     // ✅ جلب الجرعات المجدولة الآن
-    $medications = Medication::whereRaw("TIME_FORMAT(time_of_intake, '%H:%i') = ?", [$currentTime])->get();
+    $medications = Medication::whereRaw("TIME_FORMAT(time_of_intake, '%H:%i') = ?", [$currentTime])->where('pill_count', '>', 0) ->get();
+
 
     if ($medications->isEmpty()) {
         Log::info("⏳ لا يوجد أدوية يجب إرسالها الآن، سيتم البحث عن الجرعة القادمة...");
@@ -83,25 +113,32 @@ public function runMedicationSystem()
             ->orderBy('time_of_intake', 'asc')
             ->first();
 
-        if ($nextMedication) {
-            $waitTime = max(0, strtotime($nextMedication->time_of_intake) - strtotime(now()->format('H:i')));
-            Log::info("⏭️ سيتم جدولة `runMedicationSystem()` بعد $waitTime ثانية عند الساعة {$nextMedication->time_of_intake}.");
+        // if ($nextMedication) {
+        //     $waitTime = max(0, strtotime($nextMedication->time_of_intake) - strtotime(now()->format('H:i')));
+        //     Log::info("⏭️ سيتم جدولة `runMedicationSystem()` بعد $waitTime ثانية عند الساعة {$nextMedication->time_of_intake}.");
 
-            // ✅ جدولة `MedicationSystemJob`
-            if (!Cache::has('next_medication_job')) {
-                dispatch(new \App\Jobs\MedicationSystemJob())->delay(now()->addSeconds($waitTime));
-                Cache::put('next_medication_job', true, now()->addMinutes(10));
-            }
+        //     // ✅ جدولة `MedicationSystemJob`
+        //     if (!Cache::has('next_medication_job')) {
+        //         dispatch(new \App\Jobs\MedicationSystemJob())->delay(now()->addSeconds($waitTime));
+        //         Cache::put('next_medication_job', true, now()->addMinutes(10));
+        //     }
+        // } else {
+        //     Log::info("✅ لا يوجد جرعات قادمة، سيتم إنهاء `runMedicationSystem()` مؤقتًا.");
+        // }
+
+        if ($nextMedication) {
+            Log::info("⏭️ أقرب موعد جرعة هو عند: {$nextMedication->time_of_intake}، سيتم الفحص مرة أخرى في الدقيقة القادمة.");
         } else {
             Log::info("✅ لا يوجد جرعات قادمة، سيتم إنهاء `runMedicationSystem()` مؤقتًا.");
         }
         return;
     }
 
-    $mqtt = new MqttClientService();
-    $mqtt->connect();
 
-    $newMedicationSent = false; // ✅ متغير لتتبع ما إذا كان قد تم إرسال جرعة جديدة
+    $mqtt = MqttClientService::getInstance();
+
+
+    $newMedicationSent = false;
 
     foreach ($medications as $medication) {
         $closetNumber = $medication->medicine_closet_location;
@@ -113,97 +150,30 @@ public function runMedicationSystem()
             continue;
         }
 
-        // ✅ إرسال الجرعة عبر MQTT
+
         $mqtt->publish("medication/reminder", json_encode([
             "closet_number" => $closetNumber,
             "cell_number" => $cellNumber,
+            "time" => substr($medication->time_of_intake, 0, 5)
+
         ]));
+
 
         Log::info("🚀 تم إرسال رقم الخزانة: $closetNumber و رقم الخلية: $cellNumber إلى التوبيك: medication/reminder");
 
         $mqtt->publish("nao/reminder", 0);
         Log::info("🤖 أُرسلت رسالة التذكير إلى NAO: 🔔 حان وقت تناول الدواء!");
-        
+
         Cache::put($cacheKey, true, now()->addMinute());
 
-        $newMedicationSent = true; // ✅ تأكيد أنه تم إرسال جرعة جديدة
+        $newMedicationSent = true;
     }
 
-    // ✅ **الاشتراك في `medication/missed` فقط إذا تم إرسال جرعة جديدة**
     if ($newMedicationSent) {
-        Log::info("📡 تم إرسال جرعة جديدة، سيتم الاشتراك في `medication/missed`...");
-        app(\App\Http\Controllers\MedicationSubscriptionController::class)->subscribeToMissedDoses();
+        Log::info("📡 تم إرسال جرعة جديدة ✅ (لا حاجة للاشتراك لأن المستمع يعمل دائمًا).");
     } else {
         Log::info("⏭️ لم يتم إرسال أي جرعات جديدة، لن يتم الاشتراك في `medication/missed`.");
     }
 }
-
-
-
-
-/**
- * ✅ وظيفة تنتظر رد `missed/taken` خلال مدة محددة.
- */
-private function waitForResponse($closetNumber, $cellNumber, $timeout)
-{
-    $startTime = microtime(true);
-    while (microtime(true) - $startTime < $timeout) {
-        // ✅ التحقق من وجود رد في الكاش (يتم وضعه عند استقبال MQTT)
-        if (Cache::has("medication_response_{$closetNumber}_{$cellNumber}")) {
-            return true;
-        }
-        usleep(200000); // 🔄 تحسين الأداء باستخدام `usleep(200ms)` بدلاً من `sleep(1)`
-    }
-    return false;
-}
-
-/**
- * ✅ تحديث حالة الجرعة في قاعدة البيانات عند فشل الاستقبال
- */
-private function updateMedicationStatus($closetNumber, $cellNumber, $status)
-{
-    $medication = Medication::where('medicine_closet_location', $closetNumber)
-                            ->where('medicine_closet_number', $cellNumber)
-                            ->first();
-
-    if ($medication) {
-        $medication->status = $status;
-        $medication->save();
-        Log::info("✅ تم تحديث حالة الجرعة إلى `$status` للدواء في الخزانة: $closetNumber والخلية: $cellNumber.");
-    } else {
-        Log::error("❌ لم يتم العثور على الدواء لتحديث حالته.");
-    }
-}
-
-/**
- * ✅ جدولة `runMedicationSystem()` بناءً على الموعد التالي
- */
-private function scheduleNextRun($delay = null)
-{
-    if ($delay === null) {
-        $nextMedication = Medication::where('time_of_intake', '>', now()->format('H:i:00'))
-            ->orderBy('time_of_intake', 'asc')
-            ->first();
-
-        if (!$nextMedication) {
-            Log::info("✅ لا يوجد جرعات جديدة، لن يتم جدولة `runMedicationSystem()`.");
-            return;
-        }
-
-        $delay = max(0, strtotime($nextMedication->time_of_intake) - strtotime(now()->format('H:i:00')));
-    }
-
-    Log::info("📅 سيتم جدولة `MedicationSystemJob` بعد $delay ثانية.");
-
-    // ✅ التأكد من عدم جدولة نفس المهمة مرتين
-    if (!Cache::has('next_medication_job')) {
-        dispatch(new \App\Jobs\MedicationSystemJob())->delay(now()->addSeconds($delay));
-        Cache::put('next_medication_job', true, now()->addMinutes(10));
-    } else {
-        Log::info("⏳ الوظيفة مجدولة بالفعل، لن يتم إعادة الجدولة.");
-    }
-}
-
-
 
 }

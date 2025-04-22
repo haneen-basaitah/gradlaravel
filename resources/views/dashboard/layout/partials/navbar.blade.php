@@ -11,8 +11,11 @@
           <li class="nav-item">
             <form action="{{ route('logout') }}" method="POST">
                 @csrf
-                <button type="submit" class="btn btn-danger btn-sm">Logout</button>
+                <button type="submit" class="btn btn-outline-danger btn-sm">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
             </form>
+
         </li>
       <li class="nav-item d-none d-sm-inline-block">
         <a href="{{ route('patients.add') }}" class="nav-link">Eldary</a>

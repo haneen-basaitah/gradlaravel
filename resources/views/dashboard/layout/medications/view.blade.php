@@ -22,9 +22,8 @@
                 <th>Closet Number</th>
                 <th>Location</th>
                 <th>Expiration Date</th>
-                <th>pill_count</th>
-
-
+                <th>Pill Count</th>
+                <th>Actions</th> <!-- زر التعديل -->
             </tr>
         </thead>
         <tbody>
@@ -40,7 +39,40 @@
                     <td>{{ $medication->medicine_closet_location }}</td>
                     <td>{{ $medication->expiration_date }}</td>
                     <td>{{ $medication->pill_count }}</td>
+                    <td>
+                        <!-- زر فتح النموذج -->
+                        <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#editPillCountModal{{ $medication->id }}">
+                            Edit
+                        </button>
+                    </td>
                 </tr>
+
+                <!-- ✅ نموذج تعديل pill_count -->
+                <div class="modal fade" id="editPillCountModal{{ $medication->id }}" tabindex="-1" role="dialog" aria-labelledby="editPillCountLabel" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="editPillCountLabel">Edit Pill Count</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <form action="{{ route('medications.updatePillCount', $medication->id) }}" method="POST">
+                                @csrf
+                                @method('PUT')
+                                <div class="modal-body">
+                                    <label for="pill_count">New Pill Count:</label>
+                                    <input type="number" name="pill_count" class="form-control" value="{{ $medication->pill_count }}" required min="0">
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                    <button type="submit" class="btn btn-success">Save changes</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
             @endforeach
         </tbody>
     </table>

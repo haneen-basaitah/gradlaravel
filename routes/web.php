@@ -7,13 +7,15 @@ use GuzzleHttp\Middleware;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MedicationController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
-use App\Http\Controllers\ActivityController;
+use App\Http\Controllers\ActivityMqttController;
 use App\Http\Controllers\ClosetController;
 use App\Http\Controllers\MQTTClosetController;
 
 
 Route::get('/', function () {
-    return view('./welcome');
+  //  return view('./welcome');
+  return view('./frontend.index');
+
 });
 
 //============================================
@@ -43,14 +45,13 @@ Route::prefix('dashboard-panel/medications')->middleware('auth')->group(function
     Route::post('add', [MedicationController::class, 'store'])->name('medications.store'); // يجب أن يكون `POST`
     Route::get('view', [MedicationController::class, 'index'])->name('medications.view');
     Route::get('send-reminders', [MedicationController::class, 'runMedicationSystem'])->name('medications.sendReminders');
+    Route::put('/update-pill-count/{id}', [MedicationController::class, 'updatePillCount'])->name('medications.updatePillCount');
 
 });
 
 // Activities Management Routes
 Route::prefix('dashboard-panel/activities')->middleware('auth')->group(function () {
-    Route::get('add', [ActivityController::class, 'create'])->name('activities.add');
-    Route::post('add', [ActivityController::class, 'store'])->name('activities.store');
-    Route::get('view', [ActivityController::class, 'index'])->name('activities.view');
+    Route::get('view', [ActivityMqttController::class, 'index'])->name('activities.view');
 });
 
 // cloest Management Routes

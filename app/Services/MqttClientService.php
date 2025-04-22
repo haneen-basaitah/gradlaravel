@@ -4,39 +4,75 @@ namespace App\Services;
 use PhpMqtt\Client\MqttClient;
 use PhpMqtt\Client\Exceptions\MqttClientException;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
+use PhpMqtt\Client\ConnectionSettings;
 
 
 class MqttClientService
 {
 
+    private static $instance;
     private $mqtt;
-    private $connected = false; // متغير لتعقب حالة الاتصال
-    private $isListening = true; // متغير لتحديد حالة الاستماع
+    private $connected = false;
+    private $isListening = true;
+    private $subscriptions = [];
 
-    public function __construct()
+    private function __construct()
     {
-        $server = env('MQTT_HOST', '192.168.0.108'); // يمكنك تغييره لاحقًا
+        $server = env('MQTT_HOST','192.168.0.148');
+        $port = env('MQTT_PORT', 1883);
+
+        // ✅ اختيار Client ID حسب مناداة الأمر
+        $calledFromListener = app()->runningInConsole() && str_contains(implode(' ', $_SERVER['argv']), 'mqtt:listen');
+
+        $clientId = $calledFromListener
+            ? env('MQTT_CLIENT_ID_LISTENER', 'laravel_mqtt_listener')
+            : env('MQTT_CLIENT_ID_PUBLISHER', 'laravel_mqtt_scheduler');
+
+        $connectionSettings = (new ConnectionSettings)
+            ->setKeepAliveInterval(10)    // ✅ لتقليل فرص الفصل
+            ->setConnectTimeout(5);       // ⏱️ مهلة الاتصال
+
+        $this->mqtt = new MqttClient($server, $port, $clientId, MqttClient::MQTT_3_1);
+
+        // ✅ Clean Session = false لحفظ الاشتراكات في حال الفصل
+        $this->mqtt->connect($connectionSettings, false);
+        $this->connected = true;
+    }
+
+
+    public static function getInstance()
+    {
+        if (!isset(self::$instance)) {
+            self::$instance = new MqttClientService();
+        }
+        return self::$instance;
+    }
+
+    public function connect($maxRetries = 3)
+    {
+        $server = env('MQTT_HOST','192.168.0.148');
         $port = env('MQTT_PORT', 1883);
         $clientId = env('MQTT_CLIENT_ID', 'laravel_mqtt_scheduler');
 
-        $this->mqtt = new MqttClient($server, $port, $clientId);
-    }
+        $connectionSettings = (new ConnectionSettings)
+            ->setKeepAliveInterval(10)
+            ->setConnectTimeout(5);
 
-    // ✅ الاتصال بـ MQTT
-    public function connect($maxRetries = 3)
-    {
         $retryCount = 0;
 
         while ($retryCount < $maxRetries) {
             try {
-                $this->mqtt->connect();
-                $this->connected = true; // تحديث حالة الاتصال
+                $this->mqtt = new MqttClient($server, $port, $clientId, MqttClient::MQTT_3_1);
+                $this->mqtt->connect($connectionSettings, false); // CleanSession = false
+                $this->connected = true;
                 Log::info("✅ تم الاتصال بـ MQTT بنجاح.");
+                $this->restoreSubscriptions();
                 return;
             } catch (MqttClientException $e) {
                 $retryCount++;
                 Log::error("🔴 فشل الاتصال بـ MQTT (المحاولة $retryCount): " . $e->getMessage());
-                sleep(5); // إعادة المحاولة بعد 5 ثوانٍ
+                sleep(3);
             }
         }
 
@@ -44,135 +80,115 @@ class MqttClientService
         $this->connected = false;
     }
 
-    // ✅ التحقق من حالة الاتصال
     public function isConnected()
     {
         return $this->connected;
     }
 
-    // ✅ إيقاف الاستماع دون قطع الاتصال
-    public function stopListening()
-    {
-        Log::info("🛑 تم إيقاف الاستماع لـ MQTT مؤقتًا.");
-        $this->isListening = false;
-    }
-
-    // ✅ إعادة تشغيل الاستماع
-    public function resumeListening()
-    {
-        Log::info("🔄 إعادة تشغيل الاستماع لـ MQTT...");
-        $this->isListening = true;
-    }
-
-    // ✅ التحقق مما إذا كان الاستماع نشطًا
-    public function isListening()
-    {
-        return $this->isListening;
-    }
-
-    // ✅ قطع الاتصال بـ MQTT
-    public function disconnect()
-    {
-        if ($this->isConnected()) {
-            $this->mqtt->disconnect();
-            $this->connected = false;
-            Log::info("🔌 تم قطع الاتصال بـ MQTT.");
-        } else {
-            Log::warning("⚠️ لم يكن هناك اتصال نشط بـ MQTT للقطع.");
-        }
-    }
-
-    // ✅ نشر رسالة إلى MQTT
     public function publish($topic, $message)
     {
         if (!$this->isConnected()) {
-            Log::warning("⚠️ إعادة محاولة الاتصال بـ MQTT...");
+            Log::warning("⚠️ MQTT غير متصل. محاولة إعادة الاتصال...");
             $this->connect();
+            usleep(200000); // 200ms delay
         }
 
-        if ($this->isConnected()) {
-            try {
-                $this->mqtt->publish($topic, $message);
-                Log::info("📢 تم نشر الرسالة إلى MQTT: $topic - $message");
-            } catch (MqttClientException $e) {
-                Log::error("🔴 فشل النشر: " . $e->getMessage());
+        try {
+            $this->mqtt->publish($topic, $message);  // تم حذف qos و retain
+            Log::info("📢 تم نشر الرسالة إلى MQTT: $topic - $message");
+        } catch (\Exception $e) {
+            Log::error("🔴 فشل النشر إلى `$topic`: " . $e->getMessage());
+
+            $this->connected = false;
+            $this->connect();
+
+            if ($this->isConnected()) {
+                try {
+                    $this->mqtt->publish($topic, $message);  // تم الحذف هنا أيضًا
+                    Log::info("✅ تم النشر بعد إعادة الاتصال: $topic - $message");
+                } catch (\Exception $e2) {
+                    Log::error("🔴 فشل النشر بعد إعادة الاتصال إلى `$topic`: " . $e2->getMessage());
+                }
+            } else {
+                Log::error("🔴 MQTT لا يزال غير متصل بعد محاولة إعادة الاتصال.");
             }
-        } else {
-            Log::error("🔴 فشل النشر - MQTT لا يزال غير متصل!");
         }
     }
 
-    // ✅ الاشتراك في موضوع MQTT
+
     public function subscribe($topic, callable $callback)
     {
+        $this->subscriptions[$topic] = $callback;
+
         if (!$this->isConnected()) {
-            Log::warning("⚠️ إعادة محاولة الاتصال بـ MQTT...");
             $this->connect();
         }
 
         if ($this->isConnected()) {
             try {
-                Log::info("📡 الاشتراك في التوبيك: $topic");
-
-                // ✅ الاشتراك في التوبيك وتمرير البيانات إلى الـ callback
                 $this->mqtt->subscribe($topic, function ($receivedTopic, $message) use ($callback) {
                     Log::info("📩 رسالة مستقبلة من MQTT ($receivedTopic): $message");
                     $callback($receivedTopic, $message);
                 });
-
-                Log::info("🔄 بدء `loop()` للاستماع للرسائل...");
-
-                while (true) { // ✅ الاستماع المستمر
-                    $this->mqtt->loop();
-                }
-
+                Log::info("📡 تم الاشتراك في التوبيك: $topic");
             } catch (\Exception $e) {
                 Log::error("❌ خطأ أثناء الاشتراك في `$topic`: " . $e->getMessage());
             }
-        } else {
-            Log::error("🔴 فشل الاشتراك - MQTT لا يزال غير متصل!");
         }
     }
 
+    private function restoreSubscriptions()
+    {
+        foreach ($this->subscriptions as $topic => $callback) {
+            try {
+                $this->mqtt->subscribe($topic, function ($receivedTopic, $message) use ($callback) {
+                    Log::info("📩 [إعادة] رسالة مستقبلة من MQTT ($receivedTopic): $message");
+                    $callback($receivedTopic, $message);
+                });
+                Log::info("📡 [إعادة] الاشتراك في التوبيك: $topic");
+            } catch (\Exception $e) {
+                Log::error("❌ [إعادة] خطأ في الاشتراك بـ `$topic`: " . $e->getMessage());
+            }
+        }
+    }
 
-    // ✅ تشغيل `loop` للاستماع للرسائل
-    public function loop($timeout = 10)
+    public function loop($timeout = 0)
     {
         $startTime = time();
 
-        while ($this->isConnected() && $this->isListening()) {
+        while ($this->isConnected() && $this->isListening) {
             try {
                 $this->mqtt->loop();
             } catch (\Exception $e) {
                 Log::error("❌ خطأ أثناء تشغيل `loop()`: " . $e->getMessage());
+                $this->connected = false;
 
-                // ✅ إنهاء الاستماع بأمان إذا كان الاتصال مغلقًا
-                if (!$this->isConnected()) {
-                    Log::warning("🔴 تم إغلاق الاتصال بـ MQTT، سيتم إيقاف `loop()`...");
-                    break;
+                try {
+                    $this->mqtt->disconnect();
+                } catch (\Throwable $t) {
+                    Log::warning("⚠️ فشل فصل الاتصال قبل إعادة المحاولة.");
                 }
 
-                // ✅ إعادة محاولة الاتصال إذا كان ذلك ممكنًا
-                Log::warning("⚠️ إعادة محاولة الاتصال بـ MQTT...");
+                Log::warning("⚠️ محاولة إعادة الاتصال...");
                 $this->connect();
 
                 if (!$this->isConnected()) {
-                    Log::error("🔴 فشل إعادة الاتصال بـ MQTT.");
+                    Log::error("🔴 فشل إعادة الاتصال.");
                     break;
                 }
             }
 
-            usleep(500000); // انتظار 500 مللي ثانية
+            usleep(500000);
 
-            if (time() - $startTime >= $timeout) {
-                Log::info("⏳ انتهت مهلة `loop()`، سيتم إنهاء الاستماع...");
+            if ($timeout > 0 && (time() - $startTime) >= $timeout) {
+                Log::info("⏳ المهلة انتهت. الخروج من `loop()`...");
                 break;
             }
         }
     }
 
-}
 
+}
 
 
 

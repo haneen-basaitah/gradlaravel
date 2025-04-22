@@ -1,21 +1,26 @@
 <aside class="main-sidebar sidebar-dark-primary elevation-4">
     <!-- Brand Logo -->
     <a href="index3.html" class="brand-link">
-      <img src="{{asset('dashboard/dist/img/AdminLTELogo.png')}}" alt="AdminLTE Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
+      {{-- <img src="{{asset('dashboard/dist/img/AdminLTELogo.png')}}" alt="AdminLTE Logo" class="brand-image img-circle elevation-3" style="opacity: .8"> --}}
+     <img src="{{ asset('dashboard/dist/img/logo.png') }}" alt="MediMind Logo"
+     class="brand-image img-circle elevation-3"
+     style="opacity: 1; filter: brightness(1.2) contrast(1.2);  border: 1px solid white; padding: 2px;">
+
       <span class="brand-text font-weight-light">MediMind</span>
     </a>
 
     <!-- Sidebar -->
     <div class="sidebar">
       <!-- Sidebar user panel (optional) -->
-      <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+      <div class="user-panel mt-3 pb-3 mb-3 d-flex align-items-center">
         <div class="image">
-          <img src="{{asset('dashboard/dist/img/user2-160x160.jpg')}}" class="img-circle elevation-2" alt="User Image">
+            <img src="{{ asset('dashboard/dist/img/images.png') }}" class="img-circle elevation-2" alt="User Image">
         </div>
         <div class="info">
-          <a href="#" class="d-block">Alexander Pierce</a>
+            <a href="#" class="d-block text-white font-weight-bold">{{ Auth::user()->name }}</a>
         </div>
-      </div>
+    </div>
+
 
       <!-- SidebarSearch Form -->
       <div class="form-inline">
@@ -102,61 +107,14 @@
       </li>
 
       <li class="nav-item">
-        <a href="{{ route('dashboard.index') }}" @class(['nav-link', 'active' => request()->routeIs('')])>
+        <a href="{{ route('activities.view') }}"
+           class="nav-link {{ request()->routeIs('activities.view') ? 'active' : '' }}">
             <i class="fas fa-running nav-icon"></i>
-          <p>
-            Activety Schedule
-            <i class="right fas fa-angle-left"></i>
-
-          </p>
+            <p>Activity Report</p>
         </a>
-        <ul class="nav nav-treeview">
-            <li class="nav-item">
-                {{-- <a href="{{ route('activities.add') }}" @class(['nav-link', 'active' => request()->routeIs('')])>
-                    <i class="far fa-circle nav-icon"></i>
-                    <p> Add Activety</p>
-                </a> --}}
+    </li>
 
-                <li class="nav-item">
-                    <a href="{{ route('activities.view') }}" @class(['nav-link', 'active' => request()->routeIs('')])>
-                        <i class="far fa-circle nav-icon"></i>
-                        <p>Activety Report </p>
-                    </a>
-                </li>
-            </li>
 
-        </ul>
-      </li>
-
-      <li class="nav-item">
-        <a href="{{ route('dashboard.index') }}" @class(['nav-link', 'active' => request()->routeIs('')])>
-            <i class="fas fa-warehouse"></i>
-          <p>
-            Closet Statues
-            <i class="right fas fa-angle-left"></i>
-          </p>
-        </a>
-        <ul class="nav nav-treeview">
-                <li class="nav-item">
-                    <a href="{{ route('closets.view') }}" @class(['nav-link', 'active' => request()->routeIs('')])>
-                        <i class="far fa-circle nav-icon"></i>
-                        <p>View Statues </p>
-                    </a>
-                </li>
-            </li>
-
-        </ul>
-
-      </li>
-      <li class="nav-item">
-        <a href="{{ route('dashboard.index') }}" @class(['nav-link', 'active' => request()->routeIs('')])>
-          <i class="nav-icon fas fa-th"></i>
-          <p>
-            Report
-
-          </p>
-        </a>
-      </li>
 </ul>
 </nav>
 <!-- /.sidebar-menu -->

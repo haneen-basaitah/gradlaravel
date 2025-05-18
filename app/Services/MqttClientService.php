@@ -19,7 +19,7 @@ class MqttClientService
 
     private function __construct()
     {
-        $server = env('MQTT_HOST','192.168.0.148');
+        $server = env('MQTT_HOST','192.168.0.115');
         $port = env('MQTT_PORT', 1883);
 
         // ✅ اختيار Client ID حسب مناداة الأمر
@@ -51,7 +51,7 @@ class MqttClientService
 
     public function connect($maxRetries = 3)
     {
-        $server = env('MQTT_HOST','192.168.0.148');
+        $server = env('MQTT_HOST','192.168.0.115');
         $port = env('MQTT_PORT', 1883);
         $clientId = env('MQTT_CLIENT_ID', 'laravel_mqtt_scheduler');
 

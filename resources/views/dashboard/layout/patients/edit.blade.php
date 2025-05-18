@@ -24,16 +24,10 @@
                             <input type="number" name="age" id="age" class="form-control" value="{{ $patient->age }}" required>
                         </div>
 
-                        <!-- Medical Condition -->
+                        <!-- Closet ID -->
                         <div class="form-group mb-3">
-                            <label for="medical_condition">Medical Condition</label>
-                            <textarea name="medical_condition" id="medical_condition" class="form-control" rows="3">{{ $patient->medical_condition }}</textarea>
-                        </div>
-
-                        <!-- Notes -->
-                        <div class="form-group mb-3">
-                            <label for="notes">Notes</label>
-                            <textarea name="notes" id="notes" class="form-control" rows="3">{{ $patient->notes }}</textarea>
+                            <label for="closet_id">Closet Number</label>
+                            <input type="number" name="closet_id" id="closet_id" class="form-control" value="{{ $patient->closet_id }}" required>
                         </div>
 
                         <!-- Submit Button -->

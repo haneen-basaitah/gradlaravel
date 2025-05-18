@@ -1,10 +1,8 @@
-@extends('dashboard.layout.app', ['title' => 'Dashboard'])
-
-@section('content')
+<?php $__env->startSection('content'); ?>
 <div class="container mt-5 d-flex justify-content-center">
     <div class="card shadow-lg border-0 rounded-4" style="max-width: 700px; background-color: #6d8d79; color: white;">
         <div class="card-body text-center p-5">
-            <img src="{{ asset('dashboard/dist/img/logo.png') }}" alt="MediMind Logo" style="width: 100px; height: auto;" class="mb-4">
+            <img src="<?php echo e(asset('dashboard/dist/img/logo.png')); ?>" alt="MediMind Logo" style="width: 100px; height: auto;" class="mb-4">
             <h2 class="fw-bold">
                 Welcome to <span style="color: #ffffff;">Medi</span><span style="color: #6ee7b7;">Mind</span> Manager!
             </h2>
@@ -19,4 +17,6 @@
 </div>
 
 
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('dashboard.layout.app', ['title' => 'Dashboard'], \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH D:\graduations\laravel\medimind\resources\views/dashboard/index.blade.php ENDPATH**/ ?>

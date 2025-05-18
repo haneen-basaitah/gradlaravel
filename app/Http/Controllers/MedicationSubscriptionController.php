@@ -16,7 +16,8 @@ use App\Models\Patient;
 
 
 class MedicationSubscriptionController extends Controller
-{public function handleMissedMessage($topic, $message)
+{
+    public function handleMissedMessage($topic, $message)
     {
         Log::info("📩 [MQTT] ($topic): $message");
 
@@ -44,7 +45,7 @@ class MedicationSubscriptionController extends Controller
             }
 
             // ✅ تم التحقق، تحديث الحالة
-            $this->updateMedicationCount($closet, $cell, $status);
+            $this->updateMedicationCount($closet, $cell, $status,$time);
 
             // ✅ تخزين الوقت الجديد المرسل
             Cache::put($cacheKey, $time, now()->addHours(2));
@@ -54,90 +55,81 @@ class MedicationSubscriptionController extends Controller
         }
     }
 
+public function updateMedicationCount($closetId, $cellId, $status, $time)
+{
+    // ✅ كاش لمنع التكرار لنفس الوقت فقط
+    $cacheKey = "handled_{$closetId}_{$cellId}";
+    $lastHandledTime = Cache::get($cacheKey);
+    Log::info("🕒 مقارنة الأوقات - آخر معالجة: $lastHandledTime | الوقت الحالي المستلم: $time");
 
+    if ($lastHandledTime === $time) {
+        Log::warning("⚠️ تم تجاهل التحديث لأنه مكرر لنفس الوقت: $time");
+        return;
+    }
 
+    Cache::put($cacheKey, $time, now()->addHours(2));
 
+    $targetTime = substr($time, 11, 5); // "HH:MM" فقط
 
+    // ✅ تقليل pill_count من كل الجرعات في نفس الخزانة والخلية
+    $allInSameCell = Medication::where('medicine_closet_location', $closetId)
+        ->where('medicine_closet_number', $cellId)
+        ->get();
 
-    public function updateMedicationCount($closetId, $cellId, $status)
-    {
-        // ✅ كاش لمنع التحديث المتكرر خلال نفس الدقيقة
-        $cacheKey = "updated_{$closetId}_{$cellId}_" . now()->format('H:i');
-        if (Cache::has($cacheKey)) {
-            Log::warning("⚠️ تم تجاهل التحديث لأنه مكرر خلال نفس الدقيقة: ($closetId, $cellId)");
-            return;
-        }
-        Cache::put($cacheKey, true, now()->addMinutes(1));
-
-        $medications = Medication::where('medicine_closet_location', $closetId)
-            ->where('medicine_closet_number', $cellId)
-            ->get();
-
-        if ($medications->isNotEmpty()) {
-            $patientId = $medications->first()->patient_id;
-
-            $relatedMedications = Medication::where('patient_id', $patientId)
-                ->where('medicine_closet_location', $closetId)
-                ->where('medicine_closet_number', $cellId)
-                ->get();
-
-            foreach ($relatedMedications as $medication) {
-                if ($status === "taken") {
-                    Cache::put('last_closet_id', $closetId, now()->addMinutes(10));
-                    Cache::put('last_cell_id', $cellId, now()->addMinutes(10));
-
-                    // تقليل عدد الحبوب
-                    if ($medication->pill_count > 0) {
-                        $medication->pill_count -= 1;
-                    }
-                }
-
-                $medication->status = $status;
-
-                if ($medication->save()) {
-                    Log::info("✅ تم تحديث الدواء: pill_count = {$medication->pill_count}, status = $status");
-
-                    if ($status === "missed") {
-                        Log::warning("⚠️ الجرعة لم تُؤخذ في وقتها! إرسال إشعار إلى Caregiver...");
-                        $this->sendMissedDoseAlert($medication);
-                    }
-
-                    if ($status === "taken") {
-                        // ✅ إرسال start_activity إلى NAO بعد تناول الجرعة
-                        $mqtt = \App\Services\MqttClientService::getInstance();
-                        if ($mqtt->isConnected()) {
-                            $mqtt->publish("nao/start_activity", json_encode(["start_activity" => true]), 1, false);
-                            Log::info("🚀 تم إرسال إشارة بدء التمرين إلى NAO بعد تناول الدواء.");
-                        }
-                    }
-
-                    // ✅ تشغيل النظام مجددًا
-                    if (app(\App\Http\Controllers\MedicationController::class)->hasUpcomingMedications()) {
-                        Log::info("📅 يوجد جرعات قادمة، سيتم تشغيل runMedicationSystem()...");
-                        app(\App\Http\Controllers\MedicationController::class)->runMedicationSystem();
-                    }
-                } else {
-                    Log::error("❌ فشل في حفظ تحديث الدواء في قاعدة البيانات!");
-                }
-            }
-
-            if ($relatedMedications->first()->pill_count == 3) {
-                $this->sendRefillReminder($relatedMedications->first());
-            }
-        } else {
-            Log::error("🔴 لم يتم العثور على أي دواء في قاعدة البيانات للخزانة: $closetId والخلية: $cellId.");
+    foreach ($allInSameCell as $med) {
+        if ($status === "taken" && $med->pill_count > 0) {
+            $med->pill_count -= 1;
+            $med->save();
+            Log::info("📦 تم تقليل عدد الحبوب للدواء ID = {$med->id} إلى {$med->pill_count}");
         }
     }
+
+    // ✅ تغيير حالة الجرعة المطابقة للوقت فقط
+    $targetMedication = Medication::where('medicine_closet_location', $closetId)
+        ->where('medicine_closet_number', $cellId)
+        ->whereRaw("TIME_FORMAT(time_of_intake, '%H:%i') = ?", [$targetTime])
+        ->first();
+
+    if ($targetMedication) {
+        $targetMedication->status = $status;
+        $targetMedication->save();
+
+        Log::info("✅ تم تعديل حالة الجرعة ID = {$targetMedication->id} عند $targetTime إلى $status");
+
+        if ($status === "missed") {
+            $this->sendMissedDoseAlert($targetMedication);
+        }
+
+        if ($status === "taken") {
+            $mqtt = \App\Services\MqttClientService::getInstance();
+            if ($mqtt->isConnected()) {
+                $mqtt->publish("nao/start_activity", json_encode(["start_activity" => true]), 1, false);
+                Log::info("🚀 تم إرسال إشارة بدء التمرين إلى NAO بعد تناول الدواء.");
+            }
+        }
+
+        if ($targetMedication->pill_count == 3) {
+            $this->sendRefillReminder($targetMedication);
+        }
+
+        if (app(\App\Http\Controllers\MedicationController::class)->hasUpcomingMedications()) {
+            Log::info("📅 يوجد جرعات قادمة، سيتم تشغيل runMedicationSystem()...");
+            app(\App\Http\Controllers\MedicationController::class)->runMedicationSystem();
+        }
+    } else {
+        Log::error("❌ لم يتم العثور على جرعة مطابقة للتوقيت: $targetTime في الخزانة $closetId والخلية $cellId");
+    }
+}
 
 
     public function sendRefillReminder($medication)
     {
         $patient = Patient::find($medication->patient_id);
 
-        if ($patient && $patient->caregiver_email) {
-            Log::info("📧 سيتم إرسال إشعار Refill Reminder إلى: " . $patient->caregiver_email);
+        if ($patient && $patient->caregiver->email ?? null) {
+            Log::info("📧 سيتم إرسال إشعار Refill Reminder إلى: " . $patient->caregiver->email);
             Mail::to($patient->caregiver_email)->send(new RefillReminderMail($medication));
-            Log::info("✅ تم إرسال الإيميل إلى: " . $patient->caregiver_email);
+            Log::info("✅ تم إرسال الإيميل إلى: " . $patient->caregiver->email);
         } else {
             Log::error("🔴 لم يتم العثور على بريد Caregiver لهذا المريض.");
         }
@@ -147,10 +139,10 @@ class MedicationSubscriptionController extends Controller
     {
         $patient = Patient::find($medication->patient_id);
 
-        if ($patient && $patient->caregiver_email) {
-            Log::info("📧 سيتم إرسال إشعار Missed Dose إلى: " . $patient->caregiver_email);
+        if ($patient && $patient->caregiver->email ?? null) {
+            Log::info("📧 سيتم إرسال إشعار Missed Dose إلى: " . $patient->caregiver->email);
             Mail::to($patient->caregiver_email)->send(new MissedDoseMail($medication));
-            Log::info("✅ تم إرسال الإيميل إلى: " . $patient->caregiver_email);
+            Log::info("✅ تم إرسال الإيميل إلى: " . $patient->caregiver->email);
         } else {
             Log::error("🔴 لم يتم العثور على بريد Caregiver لهذا المريض.");
         }

@@ -14,11 +14,10 @@ return new class extends Migration
         Schema::create('activities', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('patient_id')->unique(); // علاقة 1..1 مع المريض
-            $table->time('color_activity_level'); // وقت نشاط الروبوت
-            $table->time('cognitive_question_answer'); // وقت نشاط الألوان
+            $table->string('color_activity_level')->nullable(); // نتيجة التمرين اللوني
+            $table->string('cognitive_question_answer')->nullable(); // إجابة التمرين المعرفي
             $table->timestamps();
 
-            // المفتاح الأجنبي
             $table->foreign('patient_id')->references('id')->on('patients')->onDelete('cascade');
         });
     }

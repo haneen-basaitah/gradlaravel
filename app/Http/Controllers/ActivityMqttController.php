@@ -9,14 +9,25 @@ use App\Models\Patient;
 use App\Models\Medication;
 use Illuminate\Http\Request;
 use App\Services\MqttClientService;
+use Illuminate\Support\Facades\Auth;
 
 class ActivityMqttController extends Controller
 {
-    public function index()
-    {
-        $activities = Activity::with('patient')->latest()->get();
-        return view('dashboard.layout.activities.index', compact('activities'));
-    }
+public function index()
+{
+    /** @var \App\Models\User $user */
+    $user = auth()->user(); // المستخدم الحالي (مقدم الرعاية)
+
+    $activities = Activity::whereHas('patient', function ($query) use ($user) {
+            $query->where('user_id', $user->id);
+        })
+        ->with('patient')
+        ->latest()
+        ->get();
+
+    return view('dashboard.layout.activities.view', compact('activities'));
+}
+
 
 
 
@@ -36,23 +47,28 @@ class ActivityMqttController extends Controller
                              ->first();
 
             if ($med) {
-                Activity::create([
-                    'patient_id' => $med->patient_id,
-                    'cognitive_question_answer' => $data['message'],
-                ]);
+                Activity::updateOrCreate(
+                    [
+                        'patient_id' => $med->patient_id,
+                        'medication_id' => $med->id,
+                        'medication_time' => now()->format('Y-m-d H:i'), // مقصوص فقط حتى الدقيقة
+                    ],
+                    [
+                        'cognitive_question_answer' => $data['message'], // أو color_activity_level حسب الدالة
+                    ]
+                );
+
                 Log::info("✅ تم تسجيل إجابة التمرين المعرفي للمريض ID = {$med->patient_id}");
             } else {
                 Log::warning("⚠️ لم يتم العثور على دواء للخزانة $closetId والخلية $cellId.");
             }
 
-            // 🧹 حذف الرسالة retained من البروكر
-            $mqtt = MqttClientService::getInstance();
-            $mqtt->publish("nao/answer_report", '', true);
-            Log::info("🧹 تم مسح الرسالة retained من topic: nao/answer_report");
         } else {
             Log::error("⚠️ البيانات غير مكتملة أو غير صالحة في answer_report.");
         }
     }
+
+
 
 
 
@@ -74,23 +90,30 @@ class ActivityMqttController extends Controller
                              ->first();
 
             if ($med) {
-                Activity::create([
-                    'patient_id' => $med->patient_id,
-                    'color_activity_level' => $text,
-                ]);
+                Activity::updateOrCreate(
+                    [
+                        'patient_id' => $med->patient_id,
+                        'medication_id' => $med->id,
+                        'medication_time' => now()->format('Y-m-d H:i'), // مقصوص فقط حتى الدقيقة
+                    ],
+                    [
+                        'color_activity_level' => $text,
+                        // أو color_activity_level حسب الدالة
+                    ]
+                );
+
                 Log::info("✅ تم تسجيل مستوى التمرين اللوني للمريض ID = {$med->patient_id}");
             } else {
                 Log::warning("⚠️ لم يتم العثور على دواء للخزانة $closetId والخلية $cellId.");
             }
 
-            // 🧹 حذف الرسالة retained من البروكر
-            $mqtt = MqttClientService::getInstance();
-            $mqtt->publish("nao/activity_end", '', true);
-            Log::info("🧹 تم مسح الرسالة retained من topic: nao/activity_end");
         } else {
             Log::error("⚠️ لم يتم العثور على معلومات الخزانة في الكاش.");
         }
     }
+
+
+
 
 
 

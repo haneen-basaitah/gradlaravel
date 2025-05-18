@@ -12,8 +12,7 @@ class Patient extends Model
     protected $fillable = [
         'name',
         'age',
-        'medical_condition',
-        'notes',
+        'closet_id',
         'caregiver_email'
     ];
 
@@ -23,7 +22,7 @@ class Patient extends Model
   // علاقة مع Caregiver
   public function caregiver()
   {
-      return $this->belongsTo(Caregiver::class, 'caregiver_email', 'email');
+    return $this->belongsTo(User::class, 'user_id');
   }
 
   //علاقه مع ال medication

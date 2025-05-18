@@ -24,17 +24,17 @@
                                     @enderror
                                 </div>
 
-                                <!-- Medicine Closet cell (Drawer Number) -->
+                                <!-- Medicine Cell Number -->
                                 <div class="col-md-6">
-                                    <label for="medicine_closet_number"><strong>Medicine Closet cell</strong></label>
+                                    <label for="medicine_closet_number"><strong>Medicine Cell Number</strong></label>
                                     <select name="medicine_closet_number" id="medicine_closet_number" class="form-control"
                                         required>
                                         <option value="">Select Drawer Number</option>
                                         <option value=1>1</option>
-                                        <option value=1>2</option>
-                                        <option value=1>3</option>
+                                        <option value=2>2</option>
+                                        <option value=3>3</option>
                                     </select>
-                                    @error('medicine_closet_number')
+                                    @error('Medicine Cell Number')
                                         <div class="text-danger">{{ $message }}</div>
                                     @enderror
                                 </div>
@@ -49,7 +49,7 @@
                                     @enderror
                                 </div>
 
-                                <!--  Closet number -->
+                                <!--  Medicine Closet Number -->
                                 <div class="col-md-6 mt-3">
                                     <label for="medicine_closet_location"><strong>Medicine Closet Number</strong></label>
                                     <input type="number" name="medicine_closet_location" id="medicine_closet_location"
@@ -61,14 +61,14 @@
 
 
                                 <!-- Dosage -->
-                                <div class="col-md-6 mt-3">
+                                {{-- <div class="col-md-6 mt-3">
                                     <label for="dosage"><strong>Doctor Recommended Dosage</strong></label>
                                     <input type="text" name="dosage" id="dosage" class="form-control"
                                         placeholder="Enter dosage" required>
                                     @error('dosage')
                                         <div class="text-danger">{{ $message }}</div>
                                     @enderror
-                                </div>
+                                </div> --}}
 
                                 <!-- Expiration Date -->
                                 <div class="col-md-6 mt-3">

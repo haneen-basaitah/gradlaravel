@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('medications', function (Blueprint $table) {
-            $table->integer('cell_number')->change(); // ✅ تغيير نوع الحقل إلى رقم
+                    $table->string('frequency')->nullable()->after('name'); // يمكنك تعديله حسب مكان العمود
 
         });
     }
@@ -23,7 +23,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('medications', function (Blueprint $table) {
-            $table->string('cell_number')->change(); // 🔄 إعادة الحقل إلى نص (إذا أردت التراجع)
+                    $table->dropColumn('frequency');
 
         });
     }

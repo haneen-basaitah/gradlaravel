@@ -10,7 +10,8 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\ActivityMqttController;
 use App\Http\Controllers\ClosetController;
 use App\Http\Controllers\MQTTClosetController;
-
+use App\Models\Patient;
+use App\Models\User;
 
 Route::get('/', function () {
   //  return view('./welcome');
@@ -33,7 +34,7 @@ Route::prefix('dashboard-panel')->name('dashboard.')->middleware('auth')->group(
 Route::prefix('dashboard-panel/patients')->middleware('auth')->group(function () {
     Route::get('add', [PatientController::class, 'create'])->name('patients.add');
     Route::get('view', [PatientController::class, 'index'])->name('patients.view');
-    Route::get('edit', [PatientController::class, 'edit'])->name('patients.edit'); // تغيير {id} إلى {healthcardno}
+    Route::get('edit/{id}', [PatientController::class, 'edit'])->name('patients.edit');
     Route::post('add', [PatientController::class, 'store'])->name('patients.store');
     Route::put('update/{id}', [PatientController::class, 'update'])->name('patients.update'); // تغيير {id} إلى {healthcardno}
     Route::delete('delete/{id}', [PatientController::class, 'destroy'])->name('patients.delete'); // تغيير {id} إلى {healthcardno}
@@ -46,6 +47,8 @@ Route::prefix('dashboard-panel/medications')->middleware('auth')->group(function
     Route::get('view', [MedicationController::class, 'index'])->name('medications.view');
     Route::get('send-reminders', [MedicationController::class, 'runMedicationSystem'])->name('medications.sendReminders');
     Route::put('/update-pill-count/{id}', [MedicationController::class, 'updatePillCount'])->name('medications.updatePillCount');
+    Route::delete('/{id}/delete', [MedicationController::class, 'destroy'])->name('medications.destroy');
+
 
 });
 
@@ -53,6 +56,7 @@ Route::prefix('dashboard-panel/medications')->middleware('auth')->group(function
 Route::prefix('dashboard-panel/activities')->middleware('auth')->group(function () {
     Route::get('view', [ActivityMqttController::class, 'index'])->name('activities.view');
 });
+
 
 // cloest Management Routes
 Route::prefix('dashboard-panel/closets')->middleware('auth')->group(function () {

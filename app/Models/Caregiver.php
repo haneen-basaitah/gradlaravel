@@ -11,6 +11,7 @@ class Caregiver extends Model
     protected $fillable = [
         'email', // الحقل الخاص بالبريد الإلكتروني
         'name',  // اسم مقدم الرعاية
+        
     ];
  // علاقة مع المرضى
  public function patients()

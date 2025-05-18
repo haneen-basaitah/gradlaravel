@@ -10,6 +10,8 @@ class Activity extends Model
     use HasFactory;
     protected $fillable = [
         'patient_id',
+        'medication_id',
+        'medication_time', // ✅ أضف هذا
         'color_activity_level',
         'cognitive_question_answer',
     ];

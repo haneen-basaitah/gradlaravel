@@ -22,17 +22,11 @@
                         <input type="number" name="age" id="age" class="form-control" placeholder="Enter patient age" required>
                     </div>
 
-                    <!-- Medical Condition -->
-                    <div class="form-group mb-3">
-                        <label for="medical_condition">Medical Condition</label>
-                        <textarea name="medical_condition" id="medical_condition" class="form-control" rows="3" placeholder="Enter medical condition"></textarea>
-                    </div>
-
-                    <!-- Notes -->
-                    <div class="form-group mb-3">
-                        <label for="notes">Notes</label>
-                        <textarea name="notes" id="notes" class="form-control" rows="3" placeholder="Additional notes (optional)"></textarea>
-                    </div>
+                 <!-- Closet ID -->
+                 <div class="form-group mb-3">
+                    <label for="closet_id">Closet Number</label>
+                    <input type="number" name="closet_id" id="closet_id" class="form-control" placeholder="Enter closet number" required>
+                </div>
 
                     <!-- Submit Button -->
                     <div class="text-center">

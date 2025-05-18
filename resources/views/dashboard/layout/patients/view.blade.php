@@ -16,8 +16,7 @@
                 <th>#</th> <!-- الرقم التسلسلي -->
                 <th>Name</th>
                 <th>Age</th>
-                <th>Medical Condition</th>
-                <th>Notes</th>
+                <th>cloest_number</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -27,8 +26,9 @@
                     <td>{{ $loop->iteration }}</td> <!-- الرقم التسلسلي -->
                     <td>{{ $patient->name }}</td> <!-- الاسم -->
                     <td>{{ $patient->age }}</td> <!-- العمر -->
-                    <td>{{ $patient->medical_condition }}</td> <!-- الحالة الصحية -->
-                    <td>{{ $patient->notes }}</td> <!-- ملاحظات -->
+                    <td>{{ $patient->closet_id }}</td> <!-- الحالة الطبية -->
+
+
                     <td>
                         <div class="d-flex gap-2">
                             <!-- زر التعديل -->

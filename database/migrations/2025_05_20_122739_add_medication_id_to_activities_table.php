@@ -11,11 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (!Schema::hasColumn('activities', 'medication_time')) {
-            Schema::table('activities', function (Blueprint $table) {
-                $table->timestamp('medication_time')->nullable()->after('medication_id');
-            });
-        }
+        Schema::table('activities', function (Blueprint $table) {
+                $table->unsignedBigInteger('medication_id')->nullable()->after('patient_id');
+
+        });
     }
 
     /**
@@ -24,8 +23,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('activities', function (Blueprint $table) {
-            $table->dropColumn('medication_time');
-
+            //
         });
     }
 };

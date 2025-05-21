@@ -13,6 +13,8 @@ use App\Services\MqttClientService;
 use App\Jobs\MedicationSystemJob;
 use Illuminate\Support\Facades\Cache;
 use App\Models\Patient;
+use App\Models\RecentMedication; // أضف هذا في أعلى الملف
+
 
 
 class MedicationSubscriptionController extends Controller
@@ -55,6 +57,7 @@ class MedicationSubscriptionController extends Controller
         }
     }
 
+
 public function updateMedicationCount($closetId, $cellId, $status, $time)
 {
     // ✅ كاش لمنع التكرار لنفس الوقت فقط
@@ -91,6 +94,11 @@ public function updateMedicationCount($closetId, $cellId, $status, $time)
         ->first();
 
     if ($targetMedication) {
+        // ✅ تخزين معلومات الجرعة الأخيرة في الكاش لاستخدامها لاحقًا في أنشطة الروبوت
+        Cache::put('last_closet_id', $closetId, now()->addMinutes(10));
+        Cache::put('last_cell_id', $cellId, now()->addMinutes(10));
+        Cache::put('last_handled_time', $time, now()->addMinutes(10));
+
         $targetMedication->status = $status;
         $targetMedication->save();
 
@@ -122,31 +130,65 @@ public function updateMedicationCount($closetId, $cellId, $status, $time)
 }
 
 
-    public function sendRefillReminder($medication)
-    {
-        $patient = Patient::find($medication->patient_id);
 
-        if ($patient && $patient->caregiver->email ?? null) {
-            Log::info("📧 سيتم إرسال إشعار Refill Reminder إلى: " . $patient->caregiver->email);
-            Mail::to($patient->caregiver_email)->send(new RefillReminderMail($medication));
-            Log::info("✅ تم إرسال الإيميل إلى: " . $patient->caregiver->email);
-        } else {
-            Log::error("🔴 لم يتم العثور على بريد Caregiver لهذا المريض.");
-        }
+public function sendRefillReminder($medication)
+{
+    $patient = Patient::find($medication->patient_id);
+    Log::info("🧪 بدأ التحقق من بريد مقدم الرعاية");
+
+    $email = null;
+
+    // جرّب العلاقة
+    if ($patient && $patient->caregiver && $patient->caregiver->email) {
+        $email = $patient->caregiver->email;
+        Log::info("✅ تم جلب الإيميل من العلاقة: " . $email);
+    }
+    // إذا العلاقة لا تعمل، استخدم caregiver_email
+    elseif ($patient && $patient->caregiver_email) {
+        $email = $patient->caregiver_email;
+        Log::info("✅ تم جلب الإيميل من الحقل المباشر: " . $email);
     }
 
-    public function sendMissedDoseAlert($medication)
-    {
-        $patient = Patient::find($medication->patient_id);
-
-        if ($patient && $patient->caregiver->email ?? null) {
-            Log::info("📧 سيتم إرسال إشعار Missed Dose إلى: " . $patient->caregiver->email);
-            Mail::to($patient->caregiver_email)->send(new MissedDoseMail($medication));
-            Log::info("✅ تم إرسال الإيميل إلى: " . $patient->caregiver->email);
-        } else {
-            Log::error("🔴 لم يتم العثور على بريد Caregiver لهذا المريض.");
-        }
+    if ($email) {
+        Mail::to($email)->send(new RefillReminderMail($medication));
+        Log::info("📧 تم إرسال الإيميل إلى: " . $email);
+    } else {
+   Log::error("🔴 [تم التعديل فعليًا] لم يتم العثور على بريد Caregiver لهذا المريض.");
     }
+}
+
+
+
+
+
+public function sendMissedDoseAlert($medication)
+{
+    $patient = Patient::find($medication->patient_id);
+    Log::info("🧪 بدأ التحقق من بريد مقدم الرعاية");
+
+    $email = null;
+
+    // جرّب العلاقة
+    if ($patient && $patient->caregiver && $patient->caregiver->email) {
+        $email = $patient->caregiver->email;
+        Log::info("✅ تم جلب الإيميل من العلاقة: " . $email);
+    }
+    // إذا العلاقة لا تعمل، استخدم caregiver_email
+    elseif ($patient && $patient->caregiver_email) {
+        $email = $patient->caregiver_email;
+        Log::info("✅ تم جلب الإيميل من الحقل المباشر: " . $email);
+    }
+
+    if ($email) {
+ Mail::to($email)->send(new MissedDoseMail($medication));
+        Log::info("📧 تم إرسال الإيميل إلى: " . $email);
+    } else {
+Log::error("🔴 [تم التعديل فعليًا] لم يتم العثور على بريد Caregiver لهذا المريض.");
+    }
+}
+
+
+
 
 }
 
